@@ -2,7 +2,9 @@ package com.alnura.greco.client.controller;
 
 import java.util.Arrays;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.websocket.servlet.WebSocketServletAutoConfiguration;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -13,8 +15,12 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.ws.client.core.WebServiceTemplate;
 
 import com.alnura.greco.client.model.UserDTO;
+import com.alnura.greco.client.wsdl.GetUserRequest;
+import com.alnura.greco.client.wsdl.GetUserResponse;
+import com.alnura.greco.client.wsdl.ObjectFactory;
 
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
@@ -29,6 +35,9 @@ public class ClientController {
 	
 	@Value("${greco-boot.port}")
 	private String port;
+	
+	@Autowired
+	private WebServiceTemplate webServiceTemplate;
 	
 	@GetMapping("/{userId}")
 	@ApiOperation(value = "Finds user by id",
@@ -77,4 +86,33 @@ public class ClientController {
         return result;
 		
     }
+	
+	@GetMapping("/{userId}/byXML")
+	@ApiOperation(value = "Finds user by id",
+    notes = "0,1,2...",
+    response = UserDTO.class
+    )
+	@ApiResponses(value = { 
+		      @ApiResponse(code = 400, message = "Invalid ID supplied"), 
+		      @ApiResponse(code = 404, message = "User not found") })
+	public UserDTO getUserByIdByXML(
+			 @ApiParam(value = "user id", required = true) @PathVariable int userId)  {
+		
+		WSSecurityHeader header=new WSSecurityHeader(
+                new AuthenticationSOAPHeader("alberto", "martin"));
+		
+		ObjectFactory factory = new ObjectFactory();
+	    GetUserRequest userRequest = factory.createGetUserRequest();
+
+	    userRequest.setId(userId);
+	    
+	    GetUserResponse userResponse= (GetUserResponse) webServiceTemplate.marshalSendAndReceive(userRequest,header);	   	    
+	   
+	    return UserDTO.builder()
+	    		.id(userResponse.getId())
+	    		.email(userResponse.getMail())
+	    		.nickname(userResponse.getNickname())
+	    		.build();
+		
+	}
 }

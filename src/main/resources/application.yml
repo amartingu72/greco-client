@@ -5,6 +5,8 @@ greco-boot:
   url: http://localhost
   port: 4545
 
+client.default-uri: http://localhost:4545/ws
+
 spring:
   application:
     name: grecoboot
